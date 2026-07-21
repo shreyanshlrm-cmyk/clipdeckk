@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+jobs/*
+outputs/*
+!jobs/.gitkeep
+!outputs/.gitkeep
+work/
+release_assets/
+shorts_bundle.zip
