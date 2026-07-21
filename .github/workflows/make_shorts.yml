@@ -1,0 +1,148 @@
+name: Clipdeck - make shorts
+
+# Triggered from the static frontend (or manually from the Actions tab).
+# Runs the whole download -> transcribe -> select -> render pipeline on
+# GitHub's own runners - no server to pay for or maintain - and publishes
+# every clip plus its SEO metadata as assets on a GitHub Release, which the
+# frontend then reads back.
+
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: "Video URL(s) - one per line or comma separated"
+        required: true
+        type: string
+      provider:
+        description: "AI provider for clip picking + SEO metadata"
+        required: false
+        type: choice
+        default: auto
+        options: [auto, anthropic, openai, gemini, none]
+      min_len:
+        description: "Shortest clip length (seconds)"
+        required: false
+        type: string
+        default: "18"
+      max_len:
+        description: "Longest clip length (seconds)"
+        required: false
+        type: string
+        default: "75"
+      num_clips:
+        description: "Number of clips per video (blank = auto)"
+        required: false
+        type: string
+        default: ""
+      whisper_model:
+        description: "Transcription accuracy"
+        required: false
+        type: choice
+        default: small
+        options: [base, small, medium]
+      words_per_caption:
+        description: "Words shown on screen at once in captions"
+        required: false
+        type: string
+        default: "3"
+      client_ref:
+        description: "Internal - lets the frontend match this run to the request it made"
+        required: false
+        type: string
+        default: ""
+
+run-name: "Clipdeck ${{ inputs.client_ref != '' && inputs.client_ref || github.run_id }}"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: clipdeck-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  make-shorts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run the pipeline
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          NUM_CLIPS_ARG=""
+          if [ -n "${{ inputs.num_clips }}" ]; then
+            NUM_CLIPS_ARG="--num-clips ${{ inputs.num_clips }}"
+          fi
+          python cli.py \
+            --urls "${{ inputs.urls }}" \
+            --provider "${{ inputs.provider }}" \
+            --min-len "${{ inputs.min_len }}" \
+            --max-len "${{ inputs.max_len }}" \
+            --whisper-model "${{ inputs.whisper_model }}" \
+            --words-per-caption "${{ inputs.words_per_caption }}" \
+            $NUM_CLIPS_ARG
+
+      - name: Ensure output artifacts exist
+        if: always()
+        run: |
+          mkdir -p release_assets
+          if [ -z "$(ls -A release_assets)" ]; then
+            echo '{"error": "The pipeline failed before producing any output. Check this run'\''s logs."}' > release_assets/error.json
+          fi
+
+      - name: Write job summary
+        if: always()
+        run: |
+          python - <<'PYEOF'
+          import json, os
+          path = "outputs/manifest.json"
+          lines = ["# Clipdeck results", ""]
+          if not os.path.exists(path):
+              lines.append("No manifest.json was produced - the pipeline likely failed early. Check the logs above.")
+          else:
+              data = json.load(open(path))
+              for v in data.get("videos", []):
+                  lines.append(f"## {v.get('video_title') or v.get('slug')}")
+                  if v.get("error"):
+                      lines.append(f"- Error: {v['error']}")
+                      continue
+                  for c in v.get("clips", []):
+                      lines.append(
+                          f"- **{c['title']}** — {c['duration']}s, virality {c['virality_score']}/100"
+                      )
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          text = "\n".join(lines) + "\n"
+          if summary_path:
+              with open(summary_path, "a") as f:
+                  f.write(text)
+          else:
+              print(text)
+          PYEOF
+
+      - name: Publish results as a Release
+        if: always()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: clipdeck-${{ github.run_id }}
+          name: "Clipdeck run ${{ github.run_id }}"
+          body: "Automated shorts from Clipdeck. Open manifest.json for full SEO metadata, or shorts_bundle.zip for everything in one file."
+          files: release_assets/*
+          draft: false
+          prerelease: false
