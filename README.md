@@ -25,8 +25,10 @@ Both modes share the exact same pipeline code, so quality is identical.
 2. **Transcribe** — `faster-whisper` runs locally/on-runner (free, offline)
    to get word-level timestamps.
 3. **Pick the moments + write the SEO metadata** — either:
-   - **AI mode**: the transcript goes to **any** of Anthropic, OpenAI, or
-     Google Gemini — whichever key you provide. It returns the strongest
+   - **AI mode**: the transcript goes to **any** of Anthropic, OpenAI,
+     Google Gemini, or Groq — whichever key you provide (Groq's free tier is
+     generous, worth knowing about if you want AI mode with zero cost). It
+     returns the strongest
      clips plus, for each one: a hook-first keyword-rich **title**, a
      search-optimized **description** (keyword up front, natural supporting
      copy, a call-to-action, hashtags at the end), a **tags** list, extra
@@ -73,7 +75,7 @@ python app.py
 
 Open **http://127.0.0.1:5000**. Paste one or more links (one per line),
 optionally expand "Advanced settings" to paste an API key from *any*
-provider (Anthropic/OpenAI/Gemini — it's auto-detected from the key's
+provider (Anthropic/OpenAI/Gemini/Groq — it's auto-detected from the key's
 prefix, or pick the provider explicitly) and tune clip length/count/caption
 style. Leave the key blank to stay fully offline and free.
 
@@ -104,6 +106,11 @@ which the page reads back and displays.
    - `ANTHROPIC_API_KEY`
    - `OPENAI_API_KEY`
    - `GEMINI_API_KEY`
+   - `GROQ_API_KEY` — **if you want AI mode without paying anything**, this
+     is the one to reach for. Groq's free tier is generous (get a key at
+     console.groq.com, no card required at signup), and Clipdeck talks to
+     it the same way it talks to OpenAI (Groq's API is OpenAI-compatible),
+     just against Groq's own fast open-model hosting.
 
    The workflow reads whichever is present — that's the "any key" part.
    Your key is never sent to, or stored in, the browser page.
@@ -215,7 +222,7 @@ templates/, static/            # Mode A: Flask frontend
 ## Extending it
 
 - `highlight_select.py` — tune the heuristic scoring, the SEO prompt
-  wording, or add another AI provider next to Anthropic/OpenAI/Gemini.
+  wording, or add another AI provider next to Anthropic/OpenAI/Gemini/Groq.
 - `crop.py` — currently a static smart-crop per clip; could be extended to
   a per-second tracked/panning crop.
 - `captions.py` — tweak the ASS style (font, colors, position, one-word-at-
