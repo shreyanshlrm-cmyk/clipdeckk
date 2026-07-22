@@ -13,29 +13,9 @@ class DownloadError(Exception):
     pass
 
 
-def _common_ydl_opts() -> dict:
-    """
-    Options shared by every yt-dlp call. YouTube aggressively flags requests
-    coming from cloud/datacenter IPs (exactly what GitHub Actions runners
-    are) with "Sign in to confirm you're not a bot". Two mitigations:
-      1. Spoofing an alternate player client (helps in some cases on its own).
-      2. Real browser cookies, if provided via the YTDLP_COOKIES_FILE env
-         var (the GitHub Actions workflow decodes a secret into this file
-         before running; the local app just won't set this var and cookies
-         are silently skipped).
-    """
-    opts = {
-        "extractor_args": {"youtube": {"player_client": ["android", "ios", "web"]}},
-    }
-    cookies_file = os.environ.get("YTDLP_COOKIES_FILE")
-    if cookies_file and os.path.exists(cookies_file):
-        opts["cookiefile"] = cookies_file
-    return opts
-
-
 def get_video_info(url: str) -> dict:
     """Fetch metadata without downloading, so the UI can show a title fast."""
-    ydl_opts = {"quiet": True, "noplaylist": True, "skip_download": True, **_common_ydl_opts()}
+    ydl_opts = {"quiet": True, "noplaylist": True, "skip_download": True}
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -68,7 +48,6 @@ def download_video(url: str, out_dir: str, progress_hook=None) -> dict:
         "progress_hooks": hooks,
         # Keep only one file on disk once merged.
         "keepvideo": False,
-        **_common_ydl_opts(),
     }
 
     try:
