@@ -45,18 +45,19 @@
             <option value="anthropic">Anthropic (Claude)</option>
             <option value="openai">OpenAI</option>
             <option value="gemini">Google Gemini</option>
+            <option value="groq">Groq (free tier, fast)</option>
             <option value="none">Offline only (no AI)</option>
           </select>
         </div>
 
         <div class="field">
           <label for="api-key">AI API key <span class="hint">(optional — paste any provider's key; leave blank for offline mode)</span></label>
-          <input id="api-key" type="password" placeholder="sk-ant-... / sk-... / AIza...">
+          <input id="api-key" type="password" placeholder="sk-ant-... / sk-... / AIza... / gsk_...">
         </div>
 
         <div class="field">
           <label for="model">Model override <span class="hint">(optional, uses a sensible default per provider)</span></label>
-          <input id="model" type="text" placeholder="e.g. claude-sonnet-5, gpt-4o-mini, gemini-2.0-flash">
+          <input id="model" type="text" placeholder="e.g. claude-sonnet-5, gpt-4o-mini, gemini-2.0-flash, openai/gpt-oss-120b">
         </div>
 
         <div class="field">
