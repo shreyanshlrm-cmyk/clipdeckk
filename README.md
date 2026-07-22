@@ -108,13 +108,47 @@ which the page reads back and displays.
    The workflow reads whichever is present — that's the "any key" part.
    Your key is never sent to, or stored in, the browser page.
 
-3. **Turn on GitHub Pages** for the frontend:
+3. **Add a `YTDLP_COOKIES_B64` repo secret (recommended for YouTube links).**
+   GitHub Actions runners run on cloud IPs, and YouTube frequently responds
+   to cloud IPs with "Sign in to confirm you're not a bot" — this isn't a
+   Clipdeck bug, it happens to any automated downloader running in the
+   cloud. Logged-in browser cookies fix this in most cases.
+
+   **Export your cookies (do this in a normal browser window, while logged
+   into YouTube):**
+   - Install a well-reviewed, currently-maintained "cookies.txt" export
+     extension for your browser (search your browser's extension store for
+     "cookies.txt" — check it's still updated/maintained before installing,
+     since some older ones have been abandoned or flagged). Firefox-based
+     exports tend to be the most reliable currently.
+   - With youtube.com open and logged in, export cookies for that site to a
+     `cookies.txt` file (Netscape format — the standard export format).
+   - This file contains your session cookies — treat it like a password.
+     Don't commit it to the repo; it only ever goes into the secret below.
+   - Base64-encode it so it survives being stored as a single-line secret:
+     - Mac/Linux: `base64 -w0 cookies.txt` (copy the output)
+     - Windows (PowerShell): `[Convert]::ToBase64String([IO.File]::ReadAllBytes("cookies.txt")) | Set-Clipboard`
+   - `Settings → Secrets and variables → Actions → New repository secret`,
+     name it `YTDLP_COOKIES_B64`, paste the base64 string as the value.
+   - Delete the local `cookies.txt` once it's saved as a secret.
+
+   **Caveat, honestly:** cookies are the standard first fix and work for a
+   meaningful share of videos, but they're not a guaranteed permanent
+   workaround — YouTube keeps tightening bot detection (some requests now
+   also want a per-video "PO token" that a static cookies file can't
+   provide). If downloads still fail on some videos after adding cookies,
+   that's a known limitation, not a sign something's misconfigured — re-export
+   fresh cookies periodically (they expire), and if failures persist, a
+   self-hosted PO-token-provider is the documented escalation path, at the
+   cost of noticeably more setup.
+
+4. **Turn on GitHub Pages** for the frontend:
    `Settings → Pages → Source: Deploy from a branch → Branch: main, folder: /docs → Save`.
    Your page will be live at `https://<owner>.github.io/<repo>/` within a
    minute or two. (No Pages access? Just open `docs/index.html` as a local
    file instead — it works the same, it's 100% static.)
 
-4. **Create a fine-grained personal access token**:
+5. **Create a fine-grained personal access token**:
    `github.com/settings/personal-access-tokens/new` → Resource owner: you →
    Repository access: **Only select repositories** → pick this repo →
    Permissions: **Actions: Read and write**, **Contents: Read and write**
