@@ -14,9 +14,9 @@ Usage:
                    --whisper-model small --words-per-caption 3
 
 AI key resolution (first match wins):
-    --api-key flag > ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY
-    environment variables (this is how GitHub Actions secrets reach it)
-    > offline heuristic mode if nothing is found.
+    --api-key flag > ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY /
+    GROQ_API_KEY environment variables (this is how GitHub Actions secrets
+    reach it) > offline heuristic mode if nothing is found.
 """
 import argparse
 import json
@@ -34,11 +34,11 @@ def parse_args():
     p.add_argument("--urls", required=True,
                    help="Comma or newline separated list of video URLs.")
     p.add_argument("--provider", default="auto",
-                   choices=["auto", "anthropic", "openai", "gemini", "none"],
+                   choices=["auto", "anthropic", "openai", "gemini", "groq", "none"],
                    help="AI provider for clip selection + SEO metadata. 'none' skips AI entirely.")
     p.add_argument("--api-key", default=None,
                    help="AI API key. If omitted, falls back to ANTHROPIC_API_KEY / "
-                        "OPENAI_API_KEY / GEMINI_API_KEY environment variables.")
+                        "OPENAI_API_KEY / GEMINI_API_KEY / GROQ_API_KEY environment variables.")
     p.add_argument("--model", default=None, help="Override the default model for the chosen provider.")
     p.add_argument("--min-len", type=float, default=18)
     p.add_argument("--max-len", type=float, default=75)
