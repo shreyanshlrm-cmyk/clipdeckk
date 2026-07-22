@@ -5,12 +5,16 @@ packages each one for upload: an SEO-focused title + description, tags,
 hashtags, and an estimated virality score with a one-line reason.
 
 Two modes:
-  1. AI mode: works with ANY of the three major providers - Anthropic,
-     OpenAI, or Google Gemini. Pass an explicit provider, or just pass a key
-     and the provider is guessed from its prefix, or leave the key blank and
-     it's picked up from ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY
-     in the environment (this is how the GitHub Actions backend feeds it a
-     key via repo secrets, without ever putting the key in a request body).
+  1. AI mode: works with ANY of four providers - Anthropic, OpenAI, Google
+     Gemini, or Groq (Groq is OpenAI-compatible under the hood - same
+     `openai` package, just pointed at Groq's endpoint - and worth calling
+     out because its free tier is generous, which fits the "no subscription"
+     requirement well). Pass an explicit provider, or just pass a key and
+     the provider is guessed from its prefix, or leave the key blank and
+     it's picked up from ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY /
+     GROQ_API_KEY in the environment (this is how the GitHub Actions backend
+     feeds it a key via repo secrets, without ever putting the key in a
+     request body).
   2. Heuristic mode (always available, free, fully offline): scores windows
      of the transcript using punctuation, keyword cues and pacing, and picks
      the strongest non-overlapping windows. Still produces titles,
@@ -30,12 +34,14 @@ DEFAULT_MODELS = {
     "anthropic": "claude-sonnet-5",
     "openai": "gpt-4o-mini",
     "gemini": "gemini-2.0-flash",
+    "groq": "openai/gpt-oss-120b",
 }
 
 PROVIDER_ENV_KEYS = {
     "anthropic": "ANTHROPIC_API_KEY",
     "openai": "OPENAI_API_KEY",
     "gemini": "GEMINI_API_KEY",
+    "groq": "GROQ_API_KEY",
 }
 
 STOPWORDS = {
@@ -137,11 +143,13 @@ def resolve_provider_and_key(provider, api_key):
             return "anthropic", key
         if key.startswith("AIza"):
             return "gemini", key
+        if key.startswith("gsk_"):
+            return "groq", key
         if key.startswith("sk-"):
             return "openai", key
         return "anthropic", key  # reasonable default guess
 
-    order = [provider] if provider and provider != "auto" else ["anthropic", "openai", "gemini"]
+    order = [provider] if provider and provider != "auto" else ["anthropic", "openai", "gemini", "groq"]
     for p in order:
         env_name = PROVIDER_ENV_KEYS.get(p)
         if env_name and os.environ.get(env_name):
@@ -234,10 +242,25 @@ def _call_gemini(system, user, api_key, model):
     return resp.text
 
 
+def _call_groq(system, user, api_key, model):
+    # Groq's API is OpenAI-compatible, so this reuses the same `openai`
+    # package already in requirements.txt - just pointed at Groq's endpoint.
+    # No extra dependency needed.
+    from openai import OpenAI
+    client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
+    resp = client.chat.completions.create(
+        model=model or DEFAULT_MODELS["groq"],
+        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+        response_format={"type": "json_object"},
+    )
+    return resp.choices[0].message.content
+
+
 _PROVIDER_CALLS = {
     "anthropic": _call_anthropic,
     "openai": _call_openai,
     "gemini": _call_gemini,
+    "groq": _call_groq,
 }
 
 
