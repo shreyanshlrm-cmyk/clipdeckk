@@ -80,11 +80,21 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
+      - name: Prepare YouTube cookies (optional)
+        run: |
+          if [ -n "${{ secrets.YTDLP_COOKIES_B64 }}" ]; then
+            echo "${{ secrets.YTDLP_COOKIES_B64 }}" | base64 -d > cookies.txt
+            echo "Cookies file prepared."
+          else
+            echo "No YTDLP_COOKIES_B64 secret set - continuing without cookies."
+          fi
+
       - name: Run the pipeline
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          YTDLP_COOKIES_FILE: cookies.txt
         run: |
           NUM_CLIPS_ARG=""
           if [ -n "${{ inputs.num_clips }}" ]; then
