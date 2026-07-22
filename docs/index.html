@@ -69,6 +69,7 @@
             <option value="anthropic">Anthropic (Claude)</option>
             <option value="openai">OpenAI</option>
             <option value="gemini">Google Gemini</option>
+            <option value="groq">Groq (free tier, fast)</option>
             <option value="none">Offline only (no AI)</option>
           </select>
         </div>
@@ -99,7 +100,7 @@
       </div>
     </details>
 
-    <p class="key-note">No API key field here on purpose — set <code>ANTHROPIC_API_KEY</code>, <code>OPENAI_API_KEY</code> or <code>GEMINI_API_KEY</code> once under your repo's Settings → Secrets → Actions. Workflow inputs are visible to anyone who can see the run, so a key typed here would leak — a secret never is.</p>
+    <p class="key-note">No API key field here on purpose — set <code>ANTHROPIC_API_KEY</code>, <code>OPENAI_API_KEY</code>, <code>GEMINI_API_KEY</code> or <code>GROQ_API_KEY</code> once under your repo's Settings → Secrets → Actions. Workflow inputs are visible to anyone who can see the run, so a key typed here would leak — a secret never is.</p>
   </section>
 
   <section class="progress-wrap" id="progress-section" hidden>
